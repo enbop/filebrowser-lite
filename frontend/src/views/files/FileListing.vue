@@ -1,9 +1,10 @@
 <template>
   <div>
     <header-bar showMenu showLogo>
-      <search />
+      <search v-if="!liteMode" />
       <title />
       <action
+        v-if="!liteMode"
         class="search-button"
         icon="search"
         :label="t('buttons.search')"
@@ -346,7 +347,7 @@ import { useFileStore } from "@/stores/file";
 import { useLayoutStore } from "@/stores/layout";
 
 import { users, files as api } from "@/api";
-import { enableExec } from "@/utils/constants";
+import { enableExec, liteMode } from "@/utils/constants";
 import * as upload from "@/utils/upload";
 import css from "@/utils/css";
 import { throttle } from "lodash-es";
@@ -930,6 +931,39 @@ const sort = async (by: string) => {
     if (modifiedIcon.value === "arrow_upward") {
       asc = true;
     }
+  }
+
+  if (liteMode && fileStore.req?.isDir) {
+    fileStore.req.sorting = { by, asc };
+
+    const compare = (left: ResourceItem, right: ResourceItem) => {
+      if (by === "size") {
+        return left.size - right.size;
+      }
+
+      if (by === "modified") {
+        return new Date(left.modified).getTime() - new Date(right.modified).getTime();
+      }
+
+      return left.name.localeCompare(right.name, undefined, {
+        numeric: true,
+        sensitivity: "base",
+      });
+    };
+
+    const directories = fileStore.req.items.filter((item) => item.isDir);
+    const files = fileStore.req.items.filter((item) => !item.isDir);
+
+    directories.sort(compare);
+    files.sort(compare);
+
+    if (!asc) {
+      directories.reverse();
+      files.reverse();
+    }
+
+    fileStore.req.items = [...directories, ...files];
+    return;
   }
 
   try {

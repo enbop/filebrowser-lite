@@ -11,20 +11,41 @@ const plugins = [
     include: [path.resolve(__dirname, "./src/i18n/**/*.json")],
   }),
   legacy({
-    // defaults already drop IE support
     targets: ["defaults"],
   }),
   compression({ include: /\.js$/, deleteOriginalAssets: false }),
 ];
 
+const liteBuild = process.env.FILEBROWSER_LITE_WASI === "1";
+
 const resolve = {
   alias: {
-    // vue: "@vue/compat",
     "@/": `${path.resolve(__dirname, "src")}/`,
   },
 };
 
-// https://vitejs.dev/config/
+const build = {
+  rollupOptions: {
+    input: {
+      index: path.resolve(
+        __dirname,
+        liteBuild ? "./index.html" : "./public/index.html"
+      ),
+    },
+    output: {
+      manualChunks: (id: string) => {
+        if (id.includes("dayjs/")) {
+          return "dayjs";
+        }
+
+        if (id.includes("i18n/")) {
+          return "i18n";
+        }
+      },
+    },
+  },
+};
+
 export default defineConfig(({ command }) => {
   if (command === "serve") {
     return {
@@ -40,42 +61,34 @@ export default defineConfig(({ command }) => {
         },
       },
     };
-  } else {
-    // command === 'build'
+  }
+
+  if (liteBuild) {
     return {
       plugins,
       resolve,
       base: "",
-      build: {
-        rollupOptions: {
-          input: {
-            index: path.resolve(__dirname, "./public/index.html"),
-          },
-          output: {
-            manualChunks: (id) => {
-              // bundle dayjs files in a single chunk
-              // this avoids having small files for each locale
-              if (id.includes("dayjs/")) {
-                return "dayjs";
-                // bundle i18n in a separate chunk
-              } else if (id.includes("i18n/")) {
-                return "i18n";
-              }
-            },
-          },
-        },
-      },
-      experimental: {
-        renderBuiltUrl(filename, { hostType }) {
-          if (hostType === "js") {
-            return { runtime: `window.__prependStaticUrl("${filename}")` };
-          } else if (hostType === "html") {
-            return `[{[ .StaticURL ]}]/${filename}`;
-          } else {
-            return { relative: true };
-          }
-        },
-      },
+      build,
     };
   }
+
+  return {
+    plugins,
+    resolve,
+    base: "",
+    build,
+    experimental: {
+      renderBuiltUrl(filename, { hostType }) {
+        if (hostType === "js") {
+          return { runtime: `window.__prependStaticUrl("${filename}")` };
+        }
+
+        if (hostType === "html") {
+          return `[{[ .StaticURL ]}]/${filename}`;
+        }
+
+        return { relative: true };
+      },
+    },
+  };
 });

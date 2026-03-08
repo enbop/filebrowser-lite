@@ -1,4 +1,4 @@
-import type { RouteLocation } from "vue-router";
+import type { RouteLocation, RouteRecordRaw } from "vue-router";
 import { createRouter, createWebHistory } from "vue-router";
 import Login from "@/views/Login.vue";
 import Layout from "@/views/Layout.vue";
@@ -12,7 +12,7 @@ import ProfileSettings from "@/views/settings/Profile.vue";
 import Shares from "@/views/settings/Shares.vue";
 import Errors from "@/views/Errors.vue";
 import { useAuthStore } from "@/stores/auth";
-import { baseURL, name } from "@/utils/constants";
+import { baseURL, liteMode, name } from "@/utils/constants";
 import i18n from "@/i18n";
 import { recaptcha, loginPage } from "@/utils/constants";
 import { login, validateLogin } from "@/utils/auth";
@@ -32,23 +32,27 @@ const titles = {
   InternalServerError: "errors.internal",
 };
 
-const routes = [
-  {
-    path: "/login",
-    name: "Login",
-    component: Login,
-  },
-  {
-    path: "/share",
-    component: Layout,
-    children: [
-      {
-        path: ":path*",
-        name: "Share",
-        component: Share,
-      },
-    ],
-  },
+const routes: RouteRecordRaw[] = [
+  ...(!liteMode
+    ? [
+        {
+          path: "/login",
+          name: "Login",
+          component: Login,
+        },
+        {
+          path: "/share",
+          component: Layout,
+          children: [
+            {
+              path: ":path*",
+              name: "Share",
+              component: Share,
+            },
+          ],
+        },
+      ]
+    : []),
   {
     path: "/files",
     component: Layout,
@@ -63,59 +67,63 @@ const routes = [
       },
     ],
   },
-  {
-    path: "/settings",
-    component: Layout,
-    meta: {
-      requiresAuth: true,
-    },
-    children: [
-      {
-        path: "",
-        name: "Settings",
-        component: Settings,
-        redirect: {
-          path: "/settings/profile",
+  ...(!liteMode
+    ? [
+        {
+          path: "/settings",
+          component: Layout,
+          meta: {
+            requiresAuth: true,
+          },
+          children: [
+            {
+              path: "",
+              name: "Settings",
+              component: Settings,
+              redirect: {
+                path: "/settings/profile",
+              },
+              children: [
+                {
+                  path: "profile",
+                  name: "ProfileSettings",
+                  component: ProfileSettings,
+                },
+                {
+                  path: "shares",
+                  name: "Shares",
+                  component: Shares,
+                },
+                {
+                  path: "global",
+                  name: "GlobalSettings",
+                  component: GlobalSettings,
+                  meta: {
+                    requiresAdmin: true,
+                  },
+                },
+                {
+                  path: "users",
+                  name: "Users",
+                  component: Users,
+                  meta: {
+                    requiresAdmin: true,
+                  },
+                },
+                {
+                  path: "users/:id",
+                  name: "User",
+                  component: User,
+                  meta: {
+                    requiresAdmin: true,
+                  },
+                },
+              ],
+            },
+          ],
         },
-        children: [
-          {
-            path: "profile",
-            name: "ProfileSettings",
-            component: ProfileSettings,
-          },
-          {
-            path: "shares",
-            name: "Shares",
-            component: Shares,
-          },
-          {
-            path: "global",
-            name: "GlobalSettings",
-            component: GlobalSettings,
-            meta: {
-              requiresAdmin: true,
-            },
-          },
-          {
-            path: "users",
-            name: "Users",
-            component: Users,
-            meta: {
-              requiresAdmin: true,
-            },
-          },
-          {
-            path: "users/:id",
-            name: "User",
-            component: User,
-            meta: {
-              requiresAdmin: true,
-            },
-          },
-        ],
-      },
-    ],
-  },
+      ]
+    : []),
   {
     path: "/403",
     name: "Forbidden",
@@ -145,12 +153,55 @@ const routes = [
   },
   {
     path: "/:catchAll(.*)*",
-    redirect: (to: RouteLocation) =>
-      `/files/${[...to.params.catchAll].join("/")}`,
+    redirect: (to: RouteLocation) => {
+      const catchAll = to.params.catchAll;
+      const parts = Array.isArray(catchAll)
+        ? catchAll
+        : typeof catchAll === "string"
+          ? [catchAll]
+          : [];
+      return `/files/${parts.join("/")}`;
+    },
   },
 ];
 
 async function initAuth() {
+  if (liteMode) {
+    const authStore = useAuthStore();
+    authStore.setUser({
+      id: 1,
+      username: "lite",
+      password: "",
+      scope: "/",
+      locale: navigator.language || "en",
+      lockPassword: false,
+      hideDotfiles: false,
+      singleClick: false,
+      redirectAfterCopyMove: false,
+      dateFormat: false,
+      viewMode: "list",
+      sorting: { by: "name", asc: true },
+      aceEditorTheme: "chrome",
+      commands: [],
+      rules: [],
+      perm: {
+        admin: false,
+        copy: true,
+        create: true,
+        delete: true,
+        download: true,
+        execute: false,
+        modify: true,
+        move: true,
+        rename: true,
+        share: false,
+        shell: false,
+        upload: true,
+      } as IUser["perm"],
+    });
+    return;
+  }
+
   if (loginPage) {
     await validateLogin();
   } else {
@@ -192,7 +243,7 @@ router.beforeResolve(async (to, from, next) => {
     }
   }
 
-  if (to.path.endsWith("/login") && authStore.isLoggedIn) {
+  if (!liteMode && to.path.endsWith("/login") && authStore.isLoggedIn) {
     next({ path: "/files/" });
     return;
   }

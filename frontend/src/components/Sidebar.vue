@@ -2,7 +2,7 @@
   <div v-show="active" @click="closeHovers" class="overlay"></div>
   <nav :class="{ active }">
     <template v-if="isLoggedIn">
-      <button @click="toAccountSettings" class="action">
+      <button v-if="!liteMode" @click="toAccountSettings" class="action">
         <i class="material-icons">person</i>
         <span>{{ user.username }}</span>
       </button>
@@ -38,7 +38,7 @@
         </button>
       </div>
 
-      <div v-if="user.perm.admin">
+      <div v-if="!liteMode && user.perm.admin">
         <button
           class="action"
           @click="toGlobalSettings"
@@ -131,6 +131,7 @@ import {
   noAuth,
   logoutPage,
   loginPage,
+  liteMode,
 } from "@/utils/constants";
 import { files as api } from "@/api";
 import ProgressBar from "@/components/ProgressBar.vue";
@@ -160,7 +161,8 @@ export default {
     version: () => version,
     disableExternal: () => disableExternal,
     disableUsedPercentage: () => disableUsedPercentage,
-    canLogout: () => !noAuth && (loginPage || logoutPage !== "/login"),
+    liteMode: () => liteMode,
+    canLogout: () => !liteMode && !noAuth && (loginPage || logoutPage !== "/login"),
   },
   methods: {
     ...mapActions(useLayoutStore, ["closeHovers", "showHover"]),
