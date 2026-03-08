@@ -697,7 +697,7 @@ fn config_js_response() -> AppResponse {
     Signup: false,
     StaticURL: "",
     Theme: "",
-    TusSettings: { chunkSize: 10485760, retryCount: 5 },
+    TusSettings: null,
     Version: "lite-wasi",
     LiteMode: true,
 };"#;

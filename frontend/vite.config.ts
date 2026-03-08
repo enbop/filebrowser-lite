@@ -67,7 +67,7 @@ export default defineConfig(({ command }) => {
     return {
       plugins,
       resolve,
-      base: "",
+      base: "/",
       build,
     };
   }

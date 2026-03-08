@@ -1,6 +1,6 @@
 import { useAuthStore } from "@/stores/auth";
 import { useLayoutStore } from "@/stores/layout";
-import { baseURL } from "@/utils/constants";
+import { baseURL, liteMode } from "@/utils/constants";
 import { upload as postTus, useTus } from "./tus";
 import { createURL, fetchURL, removePrefix, StatusError } from "./utils";
 import { isEncodableResponse, makeRawResource } from "@/utils/encodings";
@@ -105,6 +105,7 @@ export async function post(
 ) {
   // Use the pre-existing API if:
   const useResourcesApi =
+    liteMode ||
     // a folder is being created
     url.endsWith("/") ||
     // We're not using http(s)

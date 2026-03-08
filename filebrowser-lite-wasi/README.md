@@ -63,7 +63,8 @@ curl -X DELETE http://localhost:8082/api/resources/demo/readme-renamed.md
 
 ## Notes
 
-- Uploads use the raw request body for now. Multipart support is intentionally not included in this first validation step.
+- Uploads are supported in lite mode and currently send the file bytes as the raw HTTP request body.
+- Multipart support is intentionally not included in this first validation step. `multipart/form-data` is the browser form upload format that wraps files and fields with MIME boundaries; the current backend does not parse that format.
 - Request paths are normalized and reject `..` traversal.
 - The guest only sees what was mounted through `wasmtime serve --dir`.
 - The embedded frontend is built from the original `frontend/` app in lite mode and must be rebuilt before recompiling the wasm when frontend assets change.

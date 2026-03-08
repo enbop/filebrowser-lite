@@ -1,5 +1,11 @@
 import * as tus from "tus-js-client";
-import { baseURL, tusEndpoint, tusSettings, origin } from "@/utils/constants";
+import {
+  baseURL,
+  tusEndpoint,
+  tusSettings,
+  origin,
+  liteMode,
+} from "@/utils/constants";
 import { useAuthStore } from "@/stores/auth";
 import { removePrefix } from "@/api/utils";
 
@@ -102,6 +108,10 @@ function computeRetryDelays(tusSettings: TusSettings): number[] | undefined {
 }
 
 export async function useTus(content: ApiContent) {
+  if (liteMode) {
+    return false;
+  }
+
   return isTusSupported() && content instanceof Blob;
 }
 
