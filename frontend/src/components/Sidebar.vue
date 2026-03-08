@@ -97,7 +97,15 @@
 
     <p class="credits">
       <span>
-        <span v-if="disableExternal">File Browser</span>
+        <span v-if="liteMode && disableExternal">File Browser Lite</span>
+        <a
+          v-else-if="liteMode"
+          rel="noopener noreferrer"
+          target="_blank"
+          href="https://github.com/enbop/filebrowser-lite"
+          >File Browser Lite</a
+        >
+        <span v-else-if="disableExternal">File Browser</span>
         <a
           v-else
           rel="noopener noreferrer"
@@ -105,7 +113,7 @@
           href="https://github.com/filebrowser/filebrowser"
           >File Browser</a
         >
-        <span> {{ " " }} {{ version }}</span>
+        <span v-if="!liteMode"> {{ " " }} {{ version }}</span>
       </span>
       <span>
         <a @click="help">{{ $t("sidebar.help") }}</a>
