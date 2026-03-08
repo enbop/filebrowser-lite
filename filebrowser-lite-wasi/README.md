@@ -1,10 +1,29 @@
 # filebrowser-lite-wasi
 
-Minimal validation prototype for a WASI build of a filebrowser-like backend.
+Minimal WASI build of File Browser with the original frontend embedded into a single `.wasm`.
+
+Requires `wasmtime` with `wasmtime serve` support.
+
+## Quick Start
+
+Download the latest release asset:
+
+```bash
+curl -L https://github.com/enbop/filebrowser-lite/releases/latest/download/filebrowser-lite-wasi.wasm -o filebrowser-lite-wasi.wasm
+```
+
+Create a local data directory and serve the wasm:
+
+```bash
+mkdir -p data
+wasmtime serve --addr=0.0.0.0:8082 -Scli --dir data ./filebrowser-lite-wasi.wasm
+```
+
+Open http://localhost:8082/.
 
 ## Scope
 
-This prototype only keeps the core file APIs:
+This build only keeps the core file APIs:
 
 - directory listing
 - file metadata
@@ -15,9 +34,9 @@ This prototype only keeps the core file APIs:
 - rename or copy
 - delete
 
-It intentionally skips authentication, users, shares, previews, search, TUS uploads, and advanced UI configuration.
+It intentionally skips authentication, users, shares, previews, search, and TUS uploads.
 
-## Build
+## Build From Source
 
 Build from the repository root in this order so the wasm embeds the latest original frontend dist:
 
@@ -30,7 +49,7 @@ cd ../filebrowser-lite-wasi
 cargo build --target=wasm32-wasip2 -r
 ```
 
-If you previously built a wasm that still embedded the old handwritten prototype UI, force a fresh rebuild once:
+If you want to force a fully fresh wasm rebuild:
 
 ```bash
 cd filebrowser-lite-wasi
@@ -38,27 +57,11 @@ cargo clean
 cargo build --target=wasm32-wasip2 -r
 ```
 
-## Run
-
-Create a host directory to expose to the guest:
+Run the locally built wasm with:
 
 ```bash
 mkdir -p data
 wasmtime serve --addr=0.0.0.0:8082 -Scli --dir data ./target/wasm32-wasip2/release/filebrowser-lite-wasi.wasm
-```
-
-Open http://localhost:8082/ for the embedded filebrowser frontend.
-
-## Example API calls
-
-```bash
-curl http://localhost:8082/api/health
-curl http://localhost:8082/api/resources/
-curl -X POST --data-binary @README.md http://localhost:8082/api/resources/demo/readme-copy.md
-curl http://localhost:8082/api/resources/demo/readme-copy.md
-curl http://localhost:8082/api/raw/demo/readme-copy.md -o /tmp/readme-copy.md
-curl -X PATCH "http://localhost:8082/api/resources/demo/readme-copy.md?action=rename&destination=/demo/readme-renamed.md"
-curl -X DELETE http://localhost:8082/api/resources/demo/readme-renamed.md
 ```
 
 ## Notes
@@ -68,5 +71,4 @@ curl -X DELETE http://localhost:8082/api/resources/demo/readme-renamed.md
 - Request paths are normalized and reject `..` traversal.
 - The guest only sees what was mounted through `wasmtime serve --dir`.
 - The embedded frontend is built from the original `frontend/` app in lite mode and must be rebuilt before recompiling the wasm when frontend assets change.
-- If the browser still shows the old handwritten prototype UI after rebuilding, do a hard refresh and verify the served HTML contains `<title>File Browser</title>` rather than the old prototype page.
 - On the current `wstd` stack, `wasmtime serve` needs `-Scli` so the component can link the expected `wasi:cli/*` imports.
