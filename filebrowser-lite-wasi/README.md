@@ -19,7 +19,9 @@ mkdir -p data
 wasmtime serve --addr=0.0.0.0:8082 -Scli --dir data ./filebrowser-lite-wasi.wasm
 ```
 
-Open http://localhost:8082/.
+Open `http://localhost:8082/`.
+
+Or open `http://<your-machine-ip>:8082/` from another machine on the same network.
 
 ## Scope
 
