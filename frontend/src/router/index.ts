@@ -17,6 +17,8 @@ import i18n from "@/i18n";
 import { recaptcha, loginPage } from "@/utils/constants";
 import { login, validateLogin } from "@/utils/auth";
 
+const LITE_PROFILE_STORAGE_KEY = "filebrowser.lite.profile";
+
 const titles = {
   Login: "sidebar.login",
   Share: "buttons.share",
@@ -31,6 +33,20 @@ const titles = {
   NotFound: "errors.notFound",
   InternalServerError: "errors.internal",
 };
+
+function loadLiteProfile(): Partial<IUser> {
+  try {
+    const raw = window.localStorage.getItem(LITE_PROFILE_STORAGE_KEY);
+    if (!raw) {
+      return {};
+    }
+
+    const parsed = JSON.parse(raw) as Partial<IUser>;
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
 
 const routes: RouteRecordRaw[] = [
   ...(!liteMode
@@ -67,28 +83,28 @@ const routes: RouteRecordRaw[] = [
       },
     ],
   },
-  ...(!liteMode
-    ? [
-        {
-          path: "/settings",
-          component: Layout,
-          meta: {
-            requiresAuth: true,
+  {
+    path: "/settings",
+    component: Layout,
+    meta: {
+      requiresAuth: true,
+    },
+    children: [
+      {
+        path: "",
+        name: "Settings",
+        component: Settings,
+        redirect: {
+          path: "/settings/profile",
+        },
+        children: [
+          {
+            path: "profile",
+            name: "ProfileSettings",
+            component: ProfileSettings,
           },
-          children: [
-            {
-              path: "",
-              name: "Settings",
-              component: Settings,
-              redirect: {
-                path: "/settings/profile",
-              },
-              children: [
-                {
-                  path: "profile",
-                  name: "ProfileSettings",
-                  component: ProfileSettings,
-                },
+          ...(!liteMode
+            ? [
                 {
                   path: "shares",
                   name: "Shares",
@@ -118,12 +134,12 @@ const routes: RouteRecordRaw[] = [
                     requiresAdmin: true,
                   },
                 },
-              ],
-            },
-          ],
-        },
-      ]
-    : []),
+              ]
+            : []),
+        ],
+      },
+    ],
+  },
   {
     path: "/403",
     name: "Forbidden",
@@ -168,20 +184,27 @@ const routes: RouteRecordRaw[] = [
 async function initAuth() {
   if (liteMode) {
     const authStore = useAuthStore();
+    const liteProfile = loadLiteProfile();
     authStore.setUser({
       id: 1,
       username: "lite",
       password: "",
       scope: "/",
-      locale: navigator.language || "en",
+      locale:
+        typeof liteProfile.locale === "string"
+          ? liteProfile.locale
+          : navigator.language || "en",
       lockPassword: false,
-      hideDotfiles: false,
-      singleClick: false,
-      redirectAfterCopyMove: false,
-      dateFormat: false,
-      viewMode: "list",
-      sorting: { by: "name", asc: true },
-      aceEditorTheme: "chrome",
+      hideDotfiles: Boolean(liteProfile.hideDotfiles),
+      singleClick: Boolean(liteProfile.singleClick),
+      redirectAfterCopyMove: Boolean(liteProfile.redirectAfterCopyMove),
+      dateFormat: Boolean(liteProfile.dateFormat),
+      viewMode: liteProfile.viewMode || "list",
+      sorting: liteProfile.sorting || { by: "name", asc: true },
+      aceEditorTheme:
+        typeof liteProfile.aceEditorTheme === "string"
+          ? liteProfile.aceEditorTheme
+          : "chrome",
       commands: [],
       rules: [],
       perm: {

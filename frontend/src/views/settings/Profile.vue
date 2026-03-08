@@ -109,7 +109,9 @@ import AceEditorTheme from "@/components/settings/AceEditorTheme.vue";
 import Languages from "@/components/settings/Languages.vue";
 import { computed, inject, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { authMethod, noAuth } from "@/utils/constants";
+import { authMethod, liteMode, noAuth } from "@/utils/constants";
+
+const LITE_PROFILE_STORAGE_KEY = "filebrowser.lite.profile";
 
 const layoutStore = useLayoutStore();
 const authStore = useAuthStore();
@@ -158,6 +160,14 @@ onMounted(async () => {
   return true;
 });
 
+const persistLiteProfile = (user: Partial<IUser>) => {
+  try {
+    window.localStorage.setItem(LITE_PROFILE_STORAGE_KEY, JSON.stringify(user));
+  } catch {
+    // Ignore storage failures and still keep the in-memory update.
+  }
+};
+
 const updatePassword = async (event: Event) => {
   event.preventDefault();
 
@@ -202,14 +212,28 @@ const updateSettings = async (event: Event) => {
       aceEditorTheme: aceEditorTheme.value,
     };
 
-    await api.update(data, [
-      "locale",
-      "hideDotfiles",
-      "singleClick",
-      "redirectAfterCopyMove",
-      "dateFormat",
-      "aceEditorTheme",
-    ]);
+    if (liteMode) {
+      persistLiteProfile({
+        locale: data.locale,
+        hideDotfiles: data.hideDotfiles,
+        singleClick: data.singleClick,
+        redirectAfterCopyMove: data.redirectAfterCopyMove,
+        dateFormat: data.dateFormat,
+        viewMode: data.viewMode,
+        sorting: data.sorting,
+        aceEditorTheme: data.aceEditorTheme,
+      });
+    } else {
+      await api.update(data, [
+        "locale",
+        "hideDotfiles",
+        "singleClick",
+        "redirectAfterCopyMove",
+        "dateFormat",
+        "aceEditorTheme",
+      ]);
+    }
+
     authStore.updateUser(data);
     $showSuccess(t("settings.settingsUpdated"));
   } catch (err) {

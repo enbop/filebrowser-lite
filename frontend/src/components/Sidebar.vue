@@ -2,7 +2,7 @@
   <div v-show="active" @click="closeHovers" class="overlay"></div>
   <nav :class="{ active }">
     <template v-if="isLoggedIn">
-      <button v-if="!liteMode" @click="toAccountSettings" class="action">
+      <button @click="toAccountSettings" class="action">
         <i class="material-icons">person</i>
         <span>{{ user.username }}</span>
       </button>
